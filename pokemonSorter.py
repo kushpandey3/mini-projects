@@ -3,13 +3,12 @@ import pandas as pd
 df = pd.read_csv('PokemonData.csv')
 stats = ["HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed", "Total"]
 #clean duplicate Pokemon of different forms and optimize type format 
-df = df.groupby("#").first()  
+df = df.groupby("#").head(1).set_index("#")
 def displayCleanedData():
     print(f"Dataframe:\n{df}\n")
 #Questions to answer:
-#Add minimum base stat to qualify for awards??
 #1. find the highest base stat of each type
-def highestBaseStat():
+def bestByType():
     typeList = df.melt(id_vars=["Name", "Total"], value_vars = ["Type 1", "Type 2"], value_name="Type").drop(columns=["variable"]).dropna(subset=["Type"])
     maxes = typeList.loc[typeList.groupby("Type")["Total"].idxmax()].set_index("Type")
     print(f"Here are your strongest Pokes by type:\n{maxes}\n")
@@ -22,7 +21,6 @@ def strongestNonLegendary():
     print(f"Here are your strongest Pokes that aren't blessed to be legendaries:\n{strongestNonLegends}\n")
 #3. Bulkiest physically/specially/overall
 def bulkiest():
-    #upgrade efficiency n-largest > sort
     physBulk, specBulk = (df["Defense"] * df["HP"]), (df["Sp. Def"] * df["HP"])
     overallBulk = physBulk + specBulk
     physBulk.index = specBulk.index = overallBulk.index = df.Name
@@ -36,7 +34,7 @@ def glassCannons():
     offensiveRating = (qualifiedPokemon["Attack"].combine(qualifiedPokemon["Sp. Atk"], max))*qualifiedPokemon["Speed"]
     defensiveRating = (qualifiedPokemon["Defense"] + qualifiedPokemon["Sp. Def"]) * qualifiedPokemon["HP"]
     offensiveRating.index = defensiveRating.index = qualifiedPokemon.Name
-    glassCannonRating = offensiveRating/defensiveRating #fix 
+    glassCannonRating = offensiveRating/defensiveRating
     print(f"Your biggest glass cannons are:\n{glassCannonRating.sort_values(ascending=False).head(10)}\n")
 #5. Compare trends over generations
 def generationalTrends():
@@ -47,8 +45,7 @@ def generationalTrends():
         print(f"Generation with highest {stat}: {genData[stat].idxmax()}")
     #name strongest, fastest, bulkiest, etc. 
     
-#CHALLENGE 1: Pokemon similarity index (0 - 1)
-
+#Pokemon similarity index (0 - 1)
 def closestPokemon(pokedexNum):
     similarityScores = df["HP"] * df.loc[pokedexNum]["HP"]
     squaredSums = df["HP"]**2; 
@@ -66,7 +63,7 @@ def closestPokemon(pokedexNum):
     closestPokemon["Similarity Index"] = similarityScores.head()
     print(closestPokemon)
 
-#CHALLENGE 2: Which Pokemon are the most specialized?
+#Which Pokemon are the most specialized?
 def bestSpecialized():
     qualifiedPokemon = df[df["Total"] > 450]
     attackDiff = abs(qualifiedPokemon["Attack"] - qualifiedPokemon["Sp. Atk"])
@@ -76,4 +73,26 @@ def bestSpecialized():
     allocatingRating = abs(offensiveRating-defensiveRating) + attackDiff*50
     print(attackDiff)
     print(f"Your most specialized Pokemon are:\n{allocatingRating.sort_values(ascending=False).head(10)}\n")
-##Call funcs here
+
+#Users input the Pokemon they'd like to know more about
+def userChoice():
+    valid = False
+    while not valid:
+        chosenPoke = input("Which Pokemon would you like to examine today?\n")
+        chosenPokeSearch = df[df["Name"]==chosenPoke.capitalize().strip()]
+        if chosenPokeSearch.shape[0]>0:
+            valid = True
+            chosenPokeSearch = chosenPokeSearch.iloc[0]
+        else:
+            print("That's not a Pokemon in the first 6 generations")
+    print(f"So you have chosen {chosenPokeSearch["Name"]}\n{chosenPokeSearch}")
+    closestPokemon(chosenPokeSearch.name)
+
+#bestByType()
+#strongestNonLegendary()
+#bulkiest()
+#glassCannons()
+#generationalTrends()
+#closestPokemon(200)
+#bestSpecialized()
+#userChoice()
